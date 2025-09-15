@@ -1,0 +1,2140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Make Your Prediction</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 32px;
+            font-weight: bold;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            color: white;
+            font-size: 18px;
+        }
+        
+        .loading-content {
+            text-align: center;
+            background: #2c3e50;
+            padding: 30px;
+            border-radius: 10px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .controls {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .filter-section {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .filter-select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
+        }
+        
+        .download-section {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .download-btn {
+            padding: 8px 16px;
+            border: 2px solid #28a745;
+            background: white;
+            color: #28a745;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .download-btn:hover {
+            background: #28a745;
+            color: white;
+        }
+        
+        .input-mode {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .mode-btn {
+            padding: 8px 16px;
+            border: 2px solid #17a2b8;
+            background: white;
+            color: #17a2b8;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .mode-btn.active {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .share-section {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .share-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            color: white;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .share-btn.facebook {
+            background-color: #1877f2;
+        }
+        
+        .share-btn.facebook:hover {
+            background-color: #166fe5;
+        }
+        
+        .share-btn.twitter {
+            background-color: #1da1f2;
+        }
+        
+        .share-btn.twitter:hover {
+            background-color: #1a91da;
+        }
+        
+        .share-btn.instagram {
+            background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%);
+        }
+        
+        .share-btn.instagram:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .winner-radio-label {
+            display: flex !important;
+            align-items: center !important;
+            cursor: pointer !important;
+            padding: 8px !important;
+            border-radius: 4px !important;
+            transition: background 0.2s !important;
+        }
+        
+        .winner-radio-label:hover {
+            background-color: #f0f8ff !important;
+            border-color: #007bff !important;
+        }
+        
+        .winner-radio-label input[type="radio"] {
+            margin-right: 10px !important;
+            transform: scale(1.2) !important;
+        }
+        
+        .stats-bar {
+            background: #e9ecef;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #495057;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .content {
+            display: flex;
+            height: 700px;
+        }
+        
+        .map-container {
+            flex: 1.5;
+            position: relative;
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+            min-height: 600px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+        }
+        
+        .input-container {
+            flex: 1;
+            padding: 20px;
+            background: #f8f9fa;
+            border-left: 2px solid #dee2e6;
+            overflow-y: auto;
+        }
+        
+        .constituency-input-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .constituency-header {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+        }
+        
+        .constituency-info {
+            background: #e8f4fd;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .party-input-group {
+            margin-bottom: 15px;
+        }
+        
+        .party-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        
+        .party-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        
+        .input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .input-field {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .input-label {
+            min-width: 80px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .calculated-votes {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .summary-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+        }
+        
+        .summary-table th,
+        .summary-table td {
+            padding: 12px 8px;
+            text-align: center;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 13px;
+        }
+        
+        .summary-table th {
+            background-color: #343a40;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .summary-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .total-row {
+            font-weight: bold;
+            background-color: #e9ecef !important;
+        }
+        
+        .progress-indicator {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #856404;
+        }
+        
+        .no-selection {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            margin-top: 50px;
+        }
+        
+        .instructions {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 6px;
+            padding: 15px;
+            font-size: 12px;
+            color: #155724;
+            line-height: 1.4;
+            margin-top: 15px;
+        }
+        
+        .reset-btn {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 15px;
+        }
+        
+        .reset-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px;
+            text-align: center;
+        }
+
+        /* Custom tooltip styles */
+        .leaflet-tooltip {
+            background: rgba(0, 0, 0, 0.8) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 4px !important;
+            padding: 8px 12px !important;
+            font-size: 14px !important;
+            font-weight: bold !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+        }
+        
+        .leaflet-tooltip:before {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <div>Loading 300 Constituencies...</div>
+            <div style="font-size: 14px; margin-top: 10px; opacity: 0.8;">Please wait while we load const.geojson</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🗳️ Make Your Prediction</h1>
+            <p>Bangladesh Electoral Forecasting - Click any constituency to predict outcomes</p>
+        </div>
+        
+        <div class="controls">
+            <div class="control-row">
+                <div class="filter-section">
+                    <label for="divisionFilter"><strong>Filter by Division:</strong></label>
+                    <select id="divisionFilter" class="filter-select" onchange="filterByDivision()">
+                        <option value="">All Divisions</option>
+                    </select>
+                    <label for="districtFilter"><strong>District:</strong></label>
+                    <select id="districtFilter" class="filter-select" onchange="filterByDistrict()">
+                        <option value="">All Districts</option>
+                    </select>
+                </div>
+                
+                <div class="input-mode">
+                    <button class="mode-btn active" data-mode="percentage" onclick="setInputMode('percentage')">% Input</button>
+                    <button class="mode-btn" data-mode="count" onclick="setInputMode('count')">Vote Count</button>
+                    <button class="mode-btn" data-mode="winner" onclick="setInputMode('winner')">Winner Only</button>
+                </div>
+                
+                <div class="download-section">
+                    <button class="download-btn" onclick="downloadMap()">📸 Download Map</button>
+                    <button class="download-btn" onclick="downloadCSV()">📊 Download CSV</button>
+                    <button class="download-btn" onclick="saveProgress()">💾 Save Progress</button>
+                    <button class="download-btn" onclick="loadProgress()">📂 Load Progress</button>
+                </div>
+            </div>
+            
+            <div class="control-row">
+                <div class="share-section">
+                    <span style="font-weight: bold; margin-right: 10px;">Share Your Prediction:</span>
+                    <button class="share-btn facebook" onclick="shareOnFacebook()">📘 Facebook</button>
+                    <button class="share-btn twitter" onclick="shareOnTwitter()">✗ X (Twitter)</button>
+                    <button class="share-btn instagram" onclick="shareOnInstagram()">📷 Instagram</button>
+                </div>
+            </div>
+            
+            <div class="stats-bar">
+                <span><strong>Total Constituencies:</strong> <span id="totalConstituencies">300</span></span>
+                <span><strong>Completed:</strong> <span id="completedConstituencies">0</span></span>
+                <span><strong>Remaining:</strong> <span id="remainingConstituencies">300</span></span>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+            
+            <div class="input-container">
+                <div class="progress-indicator">
+                    <strong>Progress:</strong> <span id="progressPercent">0%</span> completed
+                    (<span id="completedCount">0</span> of <span id="totalCount">300</span> constituencies)
+                </div>
+                
+                <div id="constituencyInputSection" style="display: none;">
+                    <div class="constituency-input-section">
+                        <div class="constituency-header" id="constituencyName">Select a Constituency</div>
+                        
+                        <div class="constituency-info" id="constituencyInfo">
+                            Click on any constituency polygon to start entering voter predictions
+                        </div>
+                        
+                        <!-- Winner Only Section -->
+                        <div id="winnerOnlySection" style="display: none;">
+                            <div style="background: #e8f4fd; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                                <label style="display: block; font-weight: bold; margin-bottom: 15px;">🎨 Select Party:</label>
+                                <div style="display: flex; flex-direction: column; gap: 8px;">
+                                    <div class="winner-radio-label">
+                                        <input type="radio" name="winnerParty" value="BNP"> 
+                                        <span style="background-color: #007bff; width: 15px; height: 15px; border-radius: 3px; margin-right: 8px; display: inline-block;"></span>
+                                        <strong>BNP (Bangladesh Nationalist Party)</strong>
+                                    </div>
+                                    <div class="winner-radio-label">
+                                        <input type="radio" name="winnerParty" value="Jamaat"> 
+                                        <span style="background-color: #28a745; width: 15px; height: 15px; border-radius: 3px; margin-right: 8px; display: inline-block;"></span>
+                                        <strong>Jamaat-e-Islami</strong>
+                                    </div>
+                                    <div class="winner-radio-label">
+                                        <input type="radio" name="winnerParty" value="NCP"> 
+                                        <span style="background-color: #dc3545; width: 15px; height: 15px; border-radius: 3px; margin-right: 8px; display: inline-block;"></span>
+                                        <strong>NCP (Nation Citizen Party)</strong>
+                                    </div>
+                                    <div class="winner-radio-label">
+                                        <input type="radio" name="winnerParty" value="Islamic Party"> 
+                                        <span style="background-color: #ffc107; width: 15px; height: 15px; border-radius: 3px; margin-right: 8px; display: inline-block;"></span>
+                                        <strong>Islamic Party</strong>
+                                    </div>
+                                    <div class="winner-radio-label">
+                                        <input type="radio" name="winnerParty" value="Jatio Party"> 
+                                        <span style="background-color: #6f42c1; width: 15px; height: 15px; border-radius: 3px; margin-right: 8px; display: inline-block;"></span>
+                                        <strong>Jatio Party</strong>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 15px; display: flex; gap: 10px;">
+                                    <button onclick="clearWinnerSelection()" style="background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; flex: 1;">
+                                        🧹 Clear Selection
+                                    </button>
+                                    <button onclick="clearAllWinnerAssignments()" style="background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; flex: 1;">
+                                        🗑️ Clear All Assignments
+                                    </button>
+                                </div>
+                            </div>
+                            <div style="font-size: 13px; color: #666; background: #fff3cd; padding: 12px; border-radius: 6px; border: 1px solid #ffeaa7;">
+                                <strong>How to use:</strong><br>
+                                1️⃣ <strong>Click a party radio button above</strong><br>
+                                2️⃣ <strong>Click constituencies on the map</strong> to assign that party as winner<br>
+                                3️⃣ <strong>Switch parties anytime</strong> and continue clicking constituencies<br>
+                                <em>💡 Tip: You can click multiple constituencies rapidly once a party is selected</em>
+                            </div>
+                        </div>
+                        
+                        <!-- Detailed Input Section -->
+                        <div id="detailedInputSection">
+                            <div class="party-input-group">
+                                <div class="party-header">
+                                    <div class="party-color" style="background-color: #007bff;"></div>
+                                    BNP (Bangladesh Nationalist Party)
+                                </div>
+                                <div class="input-row">
+                                    <span class="input-label" id="bnpLabel">Percentage:</span>
+                                    <input type="number" class="input-field" id="bnpInput" placeholder="0" min="0" max="100" onchange="updateConstituencyData()">
+                                    <span style="font-size: 12px;">%</span>
+                                </div>
+                                <div class="calculated-votes" id="bnpVotes">Votes: 0</div>
+                            </div>
+                            
+                            <div class="party-input-group">
+                                <div class="party-header">
+                                    <div class="party-color" style="background-color: #28a745;"></div>
+                                    Jamaat-e-Islami
+                                </div>
+                                <div class="input-row">
+                                    <span class="input-label" id="jamaatLabel">Percentage:</span>
+                                    <input type="number" class="input-field" id="jamaatInput" placeholder="0" min="0" max="100" onchange="updateConstituencyData()">
+                                    <span style="font-size: 12px;">%</span>
+                                </div>
+                                <div class="calculated-votes" id="jamaatVotes">Votes: 0</div>
+                            </div>
+                            
+                            <div class="party-input-group">
+                                <div class="party-header">
+                                    <div class="party-color" style="background-color: #dc3545;"></div>
+                                    NCP (Nation Citizen Party)
+                                </div>
+                                <div class="input-row">
+                                    <span class="input-label" id="ncpLabel">Percentage:</span>
+                                    <input type="number" class="input-field" id="ncpInput" placeholder="0" min="0" max="100" onchange="updateConstituencyData()">
+                                    <span style="font-size: 12px;">%</span>
+                                </div>
+                                <div class="calculated-votes" id="ncpVotes">Votes: 0</div>
+                            </div>
+                            
+                            <div class="party-input-group">
+                                <div class="party-header">
+                                    <div class="party-color" style="background-color: #ffc107;"></div>
+                                    Islamic Party
+                                </div>
+                                <div class="input-row">
+                                    <span class="input-label" id="islamicLabel">Percentage:</span>
+                                    <input type="number" class="input-field" id="islamicInput" placeholder="0" min="0" max="100" onchange="updateConstituencyData()">
+                                    <span style="font-size: 12px;">%</span>
+                                </div>
+                                <div class="calculated-votes" id="islamicVotes">Votes: 0</div>
+                            </div>
+                            
+                            <div class="party-input-group">
+                                <div class="party-header">
+                                    <div class="party-color" style="background-color: #6f42c1;"></div>
+                                    Jatio Party
+                                </div>
+                                <div class="input-row">
+                                    <span class="input-label" id="jatioLabel">Percentage:</span>
+                                    <input type="number" class="input-field" id="jatioInput" placeholder="0" min="0" max="100" onchange="updateConstituencyData()">
+                                    <span style="font-size: 12px;">%</span>
+                                </div>
+                                <div class="calculated-votes" id="jatioVotes">Votes: 0</div>
+                            </div>
+                            
+                            <div id="percentageValidation" style="display: none;">
+                                <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-top: 15px; border-left: 4px solid #007bff;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                        <span><strong>Total Percentage:</strong></span>
+                                        <span id="totalPercentage" style="font-weight: bold;">0%</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span><strong>Remaining:</strong></span>
+                                        <span id="remainingPercentage" style="font-weight: bold; color: #28a745;">100%</span>
+                                    </div>
+                                </div>
+                                <div id="percentageWarning" style="display: none; background: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; margin-top: 8px; font-size: 12px;">
+                                    ⚠️ Total percentage cannot exceed 100%. Please adjust your inputs.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <input type="file" id="progressFileInput" accept=".json" style="display: none;" onchange="handleProgressFileLoad(event)">
+                    </div>
+                </div>
+                
+                <div id="noSelection" class="no-selection">
+                    <h3>🔍 Click Any Constituency</h3>
+                    <p>Click on any of the 300 constituency polygons to enter voter predictions.</p>
+                    <p>Use the filters above to focus on specific divisions or districts.</p>
+                </div>
+                
+                <div class="summary-section">
+                    <div class="section-title">📊 National Summary</div>
+                    <table class="summary-table">
+                        <thead>
+                            <tr id="summaryTableHeader">
+                                <th>Party</th>
+                                <th>Seats</th>
+                                <th>Total Votes</th>
+                                <th>Vote %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><div class="party-color" style="background-color: #007bff; display: inline-block; width: 15px; height: 15px; margin-right: 5px;"></div>BNP</td>
+                                <td id="totalSeatsBNP">0</td>
+                                <td id="totalVotesBNP">0</td>
+                                <td id="totalPercentBNP">0%</td>
+                            </tr>
+                            <tr>
+                                <td><div class="party-color" style="background-color: #28a745; display: inline-block; width: 15px; height: 15px; margin-right: 5px;"></div>Jamaat</td>
+                                <td id="totalSeatsJamaat">0</td>
+                                <td id="totalVotesJamaat">0</td>
+                                <td id="totalPercentJamaat">0%</td>
+                            </tr>
+                            <tr>
+                                <td><div class="party-color" style="background-color: #dc3545; display: inline-block; width: 15px; height: 15px; margin-right: 5px;"></div>NCP</td>
+                                <td id="totalSeatsNCP">0</td>
+                                <td id="totalVotesNCP">0</td>
+                                <td id="totalPercentNCP">0%</td>
+                            </tr>
+                            <tr>
+                                <td><div class="party-color" style="background-color: #ffc107; display: inline-block; width: 15px; height: 15px; margin-right: 5px;"></div>Islamic Party</td>
+                                <td id="totalSeatsIslamic">0</td>
+                                <td id="totalVotesIslamic">0</td>
+                                <td id="totalPercentIslamic">0%</td>
+                            </tr>
+                            <tr>
+                                <td><div class="party-color" style="background-color: #6f42c1; display: inline-block; width: 15px; height: 15px; margin-right: 5px;"></div>Jatio Party</td>
+                                <td id="totalSeatsJatio">0</td>
+                                <td id="totalVotesJatio">0</td>
+                                <td id="totalPercentJatio">0%</td>
+                            </tr>
+                            <tr class="total-row">
+                                <td><strong>Total</strong></td>
+                                <td id="grandTotalSeats"><strong>0</strong></td>
+                                <td id="grandTotalVotes"><strong>0</strong></td>
+                                <td id="grandTotalPercent"><strong>100%</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <button class="reset-btn" onclick="resetAllData()">🔄 Reset All Data</button>
+                    
+                    <div class="instructions">
+                        <strong>How to Use:</strong><br>
+                        • Click any constituency polygon to enter predictions<br>
+                        • Choose input mode: Percentage, Vote Count, or Winner Only<br>
+                        • Use division/district filters to focus on specific areas<br>
+                        • Save your progress and load it later to continue<br>
+                        • Share your predictions on social media<br>
+                        • Download colored maps or CSV summaries anytime
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        // Global variables
+        let map;
+        let selectedConstituency = null;
+        let inputMode = 'percentage';
+        let polygonLayers = {};
+        let bangladeshData = null;
+        let currentDivisionFilter = '';
+        let currentDistrictFilter = '';
+        let originalMapBounds = null; // Store original bounds for download
+        
+        // Store constituency voting data
+        let constituencyData = {};
+        
+        const partyColors = {
+            'BNP': '#007bff',
+            'Jamaat': '#28a745',
+            'NCP': '#dc3545',
+            'Islamic Party': '#ffc107',
+            'Jatio Party': '#6f42c1'
+        };
+
+        // Generate random total voters between 400,000 and 500,000
+        function getRandomVoters() {
+            return Math.floor(Math.random() * (500000 - 400000 + 1)) + 400000;
+        }
+
+        // Load GeoJSON data from file
+        async function loadGeoJSONData() {
+            try {
+                console.log('Fetching const.geojson from:', window.location.origin + '/const.geojson');
+                const response = await fetch('./const.geojson');
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}. Make sure const.geojson exists in the same directory as this HTML file.`);
+                }
+                
+                const data = await response.json();
+                console.log('Raw GeoJSON data loaded:', data);
+                
+                if (!data.features || !Array.isArray(data.features)) {
+                    throw new Error('Invalid GeoJSON format: missing or invalid features array');
+                }
+                
+                console.log('Number of features found:', data.features.length);
+                
+                // Add random total_voters and ensure proper structure
+                data.features.forEach((feature, index) => {
+                    // Add total voters
+                    feature.properties.total_voters = getRandomVoters();
+                    
+                    // Ensure we have an ID
+                    if (!feature.properties.id) {
+                        feature.properties.id = `constituency_${index}`;
+                    }
+                    
+                    // Map column names to our expected structure
+                    if (feature.properties.Division) {
+                        feature.properties.division = feature.properties.Division;
+                    }
+                    if (feature.properties.District) {
+                        feature.properties.district = feature.properties.District;
+                    }
+                    if (feature.properties.Constituency) {
+                        feature.properties.constituency = feature.properties.Constituency;
+                        feature.properties.name = feature.properties.Constituency;
+                    }
+                    
+                    // Log first few features for debugging
+                    if (index < 3) {
+                        console.log(`Feature ${index}:`, feature.properties);
+                    }
+                });
+                
+                return data;
+            } catch (error) {
+                console.error('Detailed error loading GeoJSON:', error);
+                throw error;
+            }
+        }
+
+        // Initialize map
+        function initMap() {
+            // Ensure map container exists and is visible
+            const mapContainer = document.getElementById('map');
+            if (!mapContainer) {
+                console.error('Map container not found');
+                return;
+            }
+            
+            try {
+                map = L.map('map', {
+                    center: [24.0, 90.5],
+                    zoom: 7,
+                    zoomControl: true,
+                    attributionControl: true
+                });
+                
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 18,
+                    tileSize: 256
+                }).addTo(map);
+                
+                console.log('Map initialized successfully');
+                
+                // Force map to resize after initialization
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 100);
+                
+            } catch (error) {
+                console.error('Error initializing map:', error);
+                showError('Failed to initialize map. Please refresh the page.');
+            }
+        }
+
+        // Load all constituency polygons
+        function loadAllConstituencies() {
+            // Clear existing layers
+            Object.values(polygonLayers).forEach(info => {
+                map.removeLayer(info.layer);
+            });
+            polygonLayers = {};
+
+            // Filter constituencies based on current filters
+            let features = bangladeshData.features;
+            
+            if (currentDivisionFilter) {
+                features = features.filter(f => f.properties.division === currentDivisionFilter);
+            }
+            
+            if (currentDistrictFilter) {
+                features = features.filter(f => f.properties.district === currentDistrictFilter);
+            }
+
+            // Add all constituency polygons to map
+            features.forEach((feature) => {
+                const layer = L.geoJSON(feature, {
+                    style: getPolygonStyle(feature)
+                }).addTo(map);
+
+                // Click event - different behavior based on input mode
+                layer.on('click', function(e) {
+                    if (inputMode === 'winner') {
+                        handleWinnerModeClick(feature);
+                    } else {
+                        selectConstituency(feature);
+                    }
+                });
+
+                // Hover events for tooltip
+                layer.on('mouseover', function(e) {
+                    const constituencyName = feature.properties.constituency || feature.properties.name || feature.properties.id;
+                    layer.bindTooltip(constituencyName, {
+                        permanent: false,
+                        direction: 'top',
+                        className: 'constituency-tooltip'
+                    }).openTooltip();
+                });
+
+                layer.on('mouseout', function(e) {
+                    layer.closeTooltip();
+                });
+
+                // Popup content
+                const popupContent = `
+                    <strong>${feature.properties.name || feature.properties.constituency}</strong><br>
+                    <strong>Division:</strong> ${feature.properties.division}<br>
+                    <strong>District:</strong> ${feature.properties.district}<br>
+                    <strong>Total Voters:</strong> ${feature.properties.total_voters.toLocaleString()}<br>
+                    <em>Click to enter predictions</em>
+                `;
+
+                layer.bindPopup(popupContent);
+
+                polygonLayers[feature.properties.id] = {
+                    layer: layer,
+                    feature: feature
+                };
+            });
+
+            // Fit map to show all polygons and store original bounds
+            if (features.length > 0) {
+                const group = new L.featureGroup(Object.values(polygonLayers).map(info => info.layer));
+                const bounds = group.getBounds();
+                originalMapBounds = bounds; // Store for download
+                map.fitBounds(bounds, { padding: [20, 20] });
+            }
+        }
+
+        // Get polygon style based on party assignment
+        function getPolygonStyle(feature) {
+            let fillColor = '#95a5a6';
+            let fillOpacity = 0.6;
+            let weight = 1;
+            
+            const data = constituencyData[feature.properties.id];
+            if (data && data.completed) {
+                const winningParty = getWinningParty(data);
+                fillColor = partyColors[winningParty] || '#95a5a6';
+                fillOpacity = 0.8;
+            }
+            
+            if (selectedConstituency === feature.properties.id) {
+                fillOpacity = 0.9;
+                weight = 3;
+            }
+
+            return {
+                fillColor: fillColor,
+                weight: weight,
+                opacity: 1,
+                color: '#2c3e50',
+                fillOpacity: fillOpacity
+            };
+        }
+
+        // Get winning party for a constituency
+        function getWinningParty(data) {
+            // If in winner-only mode, return the selected winner
+            if (data.winnerOnly && data.winner) {
+                return data.winner;
+            }
+            
+            // Otherwise, calculate based on votes
+            const votes = {
+                'BNP': data.bnpVotes || 0,
+                'Jamaat': data.jamaatVotes || 0,
+                'NCP': data.ncpVotes || 0,
+                'Islamic': data.islamicVotes || 0,
+                'Jatio Party': data.jatioVotes || 0
+            };
+            
+            return Object.keys(votes).reduce((a, b) => votes[a] > votes[b] ? a : b);
+        }
+
+        // Select constituency for input
+        function selectConstituency(constituencyFeature) {
+            selectedConstituency = constituencyFeature.properties.id;
+            
+            // Update map styles
+            Object.values(polygonLayers).forEach(info => {
+                info.layer.setStyle(getPolygonStyle(info.feature));
+            });
+            
+            // Show constituency input section
+            document.getElementById('constituencyInputSection').style.display = 'block';
+            document.getElementById('noSelection').style.display = 'none';
+            
+            // Update constituency info
+            document.getElementById('constituencyName').textContent = constituencyFeature.properties.name || constituencyFeature.properties.constituency;
+            document.getElementById('constituencyInfo').innerHTML = `
+                <strong>Division:</strong> ${constituencyFeature.properties.division}<br>
+                <strong>District:</strong> ${constituencyFeature.properties.district}<br>
+                <strong>Total Voters:</strong> ${constituencyFeature.properties.total_voters.toLocaleString()}<br>
+                <strong>Input Mode:</strong> ${inputMode === 'percentage' ? 'Percentage' : inputMode === 'count' ? 'Vote Count' : 'Winner Only'}
+            `;
+            
+            // Load existing data based on mode
+            if (inputMode !== 'winner') {
+                loadConstituencyInputData(constituencyFeature.properties.id);
+                updateConstituencyData();
+            }
+        }
+
+        // Load existing constituency data into inputs
+        function loadConstituencyInputData(constituencyId) {
+            const data = constituencyData[constituencyId] || {};
+            
+            if (inputMode === 'percentage') {
+                document.getElementById('bnpInput').value = data.bnpPercent || '';
+                document.getElementById('jamaatInput').value = data.jamaatPercent || '';
+                document.getElementById('ncpInput').value = data.ncpPercent || '';
+                document.getElementById('islamicInput').value = data.islamicPercent || '';
+                document.getElementById('jatioInput').value = data.jatioPercent || '';
+            } else {
+                document.getElementById('bnpInput').value = data.bnpVotes || '';
+                document.getElementById('jamaatInput').value = data.jamaatVotes || '';
+                document.getElementById('ncpInput').value = data.ncpVotes || '';
+                document.getElementById('islamicInput').value = data.islamicVotes || '';
+                document.getElementById('jatioInput').value = data.jatioVotes || '';
+            }
+        }
+
+        // Handle winner mode clicks (paint brush style)
+        function handleWinnerModeClick(constituencyFeature) {
+            const selectedParty = getSelectedParty();
+            
+            if (!selectedParty) {
+                alert('Please select a party first, then click constituencies to assign that party as the winner.');
+                return;
+            }
+            
+            const constituencyId = constituencyFeature.properties.id;
+            
+            if (!constituencyData[constituencyId]) {
+                constituencyData[constituencyId] = {};
+            }
+            
+            const data = constituencyData[constituencyId];
+            
+            // Assign the selected party as winner
+            data.winner = selectedParty;
+            data.completed = true;
+            data.winnerOnly = true;
+            
+            // Set dummy data for calculations (equal split with winner having slight edge)
+            const totalVoters = constituencyFeature.properties.total_voters;
+            data.bnpVotes = selectedParty === 'BNP' ? Math.round(totalVoters * 0.4) : Math.round(totalVoters * 0.15);
+            data.jamaatVotes = selectedParty === 'Jamaat' ? Math.round(totalVoters * 0.4) : Math.round(totalVoters * 0.15);
+            data.ncpVotes = selectedParty === 'NCP' ? Math.round(totalVoters * 0.4) : Math.round(totalVoters * 0.15);
+            data.islamicVotes = selectedParty === 'Islamic' ? Math.round(totalVoters * 0.4) : Math.round(totalVoters * 0.15);
+            data.jatioVotes = selectedParty === 'Jatio Party' ? Math.round(totalVoters * 0.4) : Math.round(totalVoters * 0.15);
+            
+            // Update map colors
+            if (polygonLayers[constituencyId]) {
+                polygonLayers[constituencyId].layer.setStyle(getPolygonStyle(constituencyFeature));
+            }
+            
+            // Update summary and progress
+            updateNationalSummary();
+            updateProgressIndicator();
+            
+            // Show brief feedback
+            const constituencyName = constituencyFeature.properties.name || constituencyFeature.properties.constituency;
+            showBriefNotification(`${selectedParty} assigned to ${constituencyName}`);
+        }
+
+        // Get currently selected party in winner mode
+        function getSelectedParty() {
+            const selectedRadio = document.querySelector('input[name="winnerParty"]:checked');
+            return selectedRadio ? selectedRadio.value : '';
+        }
+
+        // Show brief notification
+        function showBriefNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #28a745;
+                color: white;
+                padding: 10px 20px;
+                border-radius: 6px;
+                z-index: 10000;
+                font-weight: bold;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            // Remove after 2 seconds
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 2000);
+        }
+
+        // This function is called when a party is selected in winner mode
+        function updateSelectedParty() {
+            const selectedParty = getSelectedParty();
+            if (selectedParty) {
+                showBriefNotification(`${selectedParty} selected. Now click constituencies to assign this party.`);
+            }
+        }
+
+        // New function specifically for winner mode party selection - MORE RELIABLE
+        function selectPartyWinner(partyValue) {
+            console.log('🎯 Selecting party:', partyValue);
+            
+            // First, remove selected styling from all party boxes
+            const allPartyBoxes = document.querySelectorAll('#partySelectionGroup .winner-radio-label');
+            allPartyBoxes.forEach(box => {
+                box.style.border = '2px solid #ddd';
+                box.style.background = 'white';
+            });
+            
+            // Clear all radio buttons
+            const radioButtons = document.querySelectorAll('input[name="winnerParty"]');
+            radioButtons.forEach(radio => {
+                radio.checked = false;
+            });
+            
+            // Set the selected party radio button
+            const selectedRadio = document.querySelector(`input[name="winnerParty"][value="${partyValue}"]`);
+            if (selectedRadio) {
+                selectedRadio.checked = true;
+                
+                // Highlight the selected party box
+                const selectedBox = selectedRadio.closest('.winner-radio-label');
+                if (selectedBox) {
+                    selectedBox.style.border = '2px solid #007bff';
+                    selectedBox.style.background = '#e3f2fd';
+                }
+                
+                console.log('✅ Party selected successfully:', partyValue);
+                showBriefNotification(`🎯 ${partyValue} selected! Now click constituencies on the map to assign this party as winner.`);
+            } else {
+                console.error('❌ Could not find radio button for party:', partyValue);
+                alert('Error selecting party. Please try again.');
+            }
+        }
+
+        // Keep the old function for backward compatibility
+        function selectParty(partyValue) {
+            selectPartyWinner(partyValue);
+        }
+
+        function clearWinnerSelection() {
+            const radioButtons = document.querySelectorAll('input[name="winnerParty"]');
+            radioButtons.forEach(radio => {
+                radio.checked = false;
+            });
+            showBriefNotification('Party selection cleared');
+        }
+
+        function clearAllWinnerAssignments() {
+            if (confirm('Are you sure you want to clear all winner assignments? This cannot be undone.')) {
+                // Clear all winner-only assignments
+                Object.keys(constituencyData).forEach(constituencyId => {
+                    const data = constituencyData[constituencyId];
+                    if (data && data.winnerOnly) {
+                        data.winner = null;
+                        data.completed = false;
+                        data.winnerOnly = false;
+                        data.bnpVotes = 0;
+                        data.jamaatVotes = 0;
+                        data.ncpVotes = 0;
+                        data.islamicVotes = 0;
+                        data.jatioVotes = 0;
+                    }
+                });
+                
+                // Update map colors
+                Object.values(polygonLayers).forEach(info => {
+                    info.layer.setStyle(getPolygonStyle(info.feature));
+                });
+                
+                updateNationalSummary();
+                updateProgressIndicator();
+                showBriefNotification('All winner assignments cleared');
+            }
+        }
+
+        // Update constituency data based on inputs
+        function updateConstituencyData() {
+            if (!selectedConstituency) return;
+            
+            const constituency = bangladeshData.features.find(f => f.properties.id === selectedConstituency);
+            if (!constituency) return;
+            
+            const totalVoters = constituency.properties.total_voters;
+            
+            if (!constituencyData[selectedConstituency]) {
+                constituencyData[selectedConstituency] = {};
+            }
+            
+            const data = constituencyData[selectedConstituency];
+            
+            if (inputMode === 'percentage') {
+                const bnpPercent = parseFloat(document.getElementById('bnpInput').value) || 0;
+                const jamaatPercent = parseFloat(document.getElementById('jamaatInput').value) || 0;
+                const ncpPercent = parseFloat(document.getElementById('ncpInput').value) || 0;
+                const islamicPercent = parseFloat(document.getElementById('islamicInput').value) || 0;
+                const jatioPercent = parseFloat(document.getElementById('jatioInput').value) || 0;
+                
+                // Calculate total percentage
+                const totalPercent = bnpPercent + jamaatPercent + ncpPercent + islamicPercent + jatioPercent;
+                const remainingPercent = 100 - totalPercent;
+                
+                // Show percentage validation section
+                document.getElementById('percentageValidation').style.display = 'block';
+                document.getElementById('totalPercentage').textContent = totalPercent.toFixed(1) + '%';
+                document.getElementById('remainingPercentage').textContent = remainingPercent.toFixed(1) + '%';
+                
+                // Show warning if over 100%
+                const warningElement = document.getElementById('percentageWarning');
+                const remainingElement = document.getElementById('remainingPercentage');
+                
+                if (totalPercent > 100) {
+                    warningElement.style.display = 'block';
+                    remainingElement.style.color = '#dc3545';
+                    remainingElement.textContent = remainingPercent.toFixed(1) + '%';
+                } else {
+                    warningElement.style.display = 'none';
+                    remainingElement.style.color = remainingPercent === 0 ? '#ffc107' : '#28a745';
+                }
+                
+                // Only save data if total is <= 100%
+                if (totalPercent <= 100) {
+                    data.bnpPercent = bnpPercent;
+                    data.jamaatPercent = jamaatPercent;
+                    data.ncpPercent = ncpPercent;
+                    data.islamicPercent = islamicPercent;
+                    data.jatioPercent = jatioPercent;
+                    
+                    data.bnpVotes = Math.round(totalVoters * bnpPercent / 100);
+                    data.jamaatVotes = Math.round(totalVoters * jamaatPercent / 100);
+                    data.ncpVotes = Math.round(totalVoters * ncpPercent / 100);
+                    data.islamicVotes = Math.round(totalVoters * islamicPercent / 100);
+                    data.jatioVotes = Math.round(totalVoters * jatioPercent / 100);
+                }
+                
+                document.getElementById('bnpVotes').textContent = `Votes: ${(data.bnpVotes || 0).toLocaleString()}`;
+                document.getElementById('jamaatVotes').textContent = `Votes: ${(data.jamaatVotes || 0).toLocaleString()}`;
+                document.getElementById('ncpVotes').textContent = `Votes: ${(data.ncpVotes || 0).toLocaleString()}`;
+                document.getElementById('islamicVotes').textContent = `Votes: ${(data.islamicVotes || 0).toLocaleString()}`;
+                document.getElementById('jatioVotes').textContent = `Votes: ${(data.jatioVotes || 0).toLocaleString()}`;
+                
+            } else {
+                // Hide percentage validation in count mode
+                document.getElementById('percentageValidation').style.display = 'none';
+                
+                const bnpVotes = parseInt(document.getElementById('bnpInput').value) || 0;
+                const jamaatVotes = parseInt(document.getElementById('jamaatInput').value) || 0;
+                const ncpVotes = parseInt(document.getElementById('ncpInput').value) || 0;
+                const islamicVotes = parseInt(document.getElementById('islamicInput').value) || 0;
+                const jatioVotes = parseInt(document.getElementById('jatioInput').value) || 0;
+                
+                data.bnpVotes = bnpVotes;
+                data.jamaatVotes = jamaatVotes;
+                data.ncpVotes = ncpVotes;
+                data.islamicVotes = islamicVotes;
+                data.jatioVotes = jatioVotes;
+                
+                data.bnpPercent = totalVoters > 0 ? (bnpVotes / totalVoters * 100).toFixed(2) : 0;
+                data.jamaatPercent = totalVoters > 0 ? (jamaatVotes / totalVoters * 100).toFixed(2) : 0;
+                data.ncpPercent = totalVoters > 0 ? (ncpVotes / totalVoters * 100).toFixed(2) : 0;
+                data.islamicPercent = totalVoters > 0 ? (islamicVotes / totalVoters * 100).toFixed(2) : 0;
+                data.jatioPercent = totalVoters > 0 ? (jatioVotes / totalVoters * 100).toFixed(2) : 0;
+                
+                document.getElementById('bnpVotes').textContent = `Percentage: ${data.bnpPercent}%`;
+                document.getElementById('jamaatVotes').textContent = `Percentage: ${data.jamaatPercent}%`;
+                document.getElementById('ncpVotes').textContent = `Percentage: ${data.ncpPercent}%`;
+                document.getElementById('islamicVotes').textContent = `Percentage: ${data.islamicPercent}%`;
+                document.getElementById('jatioVotes').textContent = `Percentage: ${data.jatioPercent}%`;
+            }
+            
+            // Check if constituency is completed (only save if valid in percentage mode)
+            const isValidData = inputMode === 'count' || (inputMode === 'percentage' && (parseFloat(document.getElementById('bnpInput').value) || 0) + (parseFloat(document.getElementById('jamaatInput').value) || 0) + (parseFloat(document.getElementById('ncpInput').value) || 0) + (parseFloat(document.getElementById('islamicInput').value) || 0) + (parseFloat(document.getElementById('jatioInput').value) || 0) <= 100);
+            
+            if (isValidData) {
+                data.completed = data.bnpVotes > 0 || data.jamaatVotes > 0 || data.ncpVotes > 0 || data.islamicVotes > 0 || data.jatioVotes > 0;
+            }
+            
+            // Update map colors only if data is valid
+            if (isValidData && polygonLayers[selectedConstituency]) {
+                polygonLayers[selectedConstituency].layer.setStyle(getPolygonStyle(constituency));
+            }
+            
+            updateNationalSummary();
+            updateProgressIndicator();
+        }
+
+        // Set input mode
+        function setInputMode(mode) {
+            inputMode = mode;
+            
+            // Update button states
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.mode === mode) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Show/hide appropriate input sections
+            if (mode === 'winner') {
+                // ALWAYS show the constituency input section in winner mode so party buttons are visible
+                document.getElementById('constituencyInputSection').style.display = 'block';
+                document.getElementById('winnerOnlySection').style.display = 'block';
+                document.getElementById('detailedInputSection').style.display = 'none';
+                document.getElementById('percentageValidation').style.display = 'none';
+                document.getElementById('noSelection').style.display = 'none';
+                
+                // Update constituency name to show it's in winner mode
+                document.getElementById('constituencyName').textContent = 'Winner Only Mode - Select Party & Click Constituencies';
+                
+            } else {
+                document.getElementById('winnerOnlySection').style.display = 'none';
+                document.getElementById('detailedInputSection').style.display = 'block';
+                
+                // Hide constituency section until a constituency is selected
+                if (!selectedConstituency) {
+                    document.getElementById('constituencyInputSection').style.display = 'none';
+                    document.getElementById('noSelection').style.display = 'block';
+                }
+                
+                // Update input labels for percentage/count modes
+                const labels = mode === 'percentage' ? 'Percentage:' : 'Vote Count:';
+                document.getElementById('bnpLabel').textContent = labels;
+                document.getElementById('jamaatLabel').textContent = labels;
+                document.getElementById('ncpLabel').textContent = labels;
+                document.getElementById('islamicLabel').textContent = labels;
+                document.getElementById('jatioLabel').textContent = labels;
+                
+                // Show/hide percentage validation
+                if (mode === 'percentage') {
+                    document.getElementById('percentageValidation').style.display = 'block';
+                } else {
+                    document.getElementById('percentageValidation').style.display = 'none';
+                }
+                
+                // Update input constraints
+                const inputs = ['bnpInput', 'jamaatInput', 'ncpInput', 'islamicInput', 'jatioInput'];
+                inputs.forEach(id => {
+                    const input = document.getElementById(id);
+                    if (mode === 'percentage') {
+                        input.max = '100';
+                        input.step = '0.1';
+                    } else {
+                        input.removeAttribute('max');
+                        input.step = '1';
+                    }
+                });
+                
+                // Reload current constituency data if one is selected
+                if (selectedConstituency) {
+                    loadConstituencyInputData(selectedConstituency);
+                    updateConstituencyData();
+                }
+            }
+        }
+
+        // Filter functions
+        function populateFilters() {
+            const divisions = [...new Set(bangladeshData.features.map(f => f.properties.division))].sort();
+            const districts = [...new Set(bangladeshData.features.map(f => f.properties.district))].sort();
+            
+            const divisionSelect = document.getElementById('divisionFilter');
+            const districtSelect = document.getElementById('districtFilter');
+            
+            // Populate division filter
+            divisions.forEach(division => {
+                const option = document.createElement('option');
+                option.value = division;
+                option.textContent = division;
+                divisionSelect.appendChild(option);
+            });
+            
+            // Populate district filter
+            districts.forEach(district => {
+                const option = document.createElement('option');
+                option.value = district;
+                option.textContent = district;
+                districtSelect.appendChild(option);
+            });
+        }
+
+        function filterByDivision() {
+            currentDivisionFilter = document.getElementById('divisionFilter').value;
+            
+            // Update district filter based on division
+            const districtSelect = document.getElementById('districtFilter');
+            districtSelect.innerHTML = '<option value="">All Districts</option>';
+            
+            if (currentDivisionFilter) {
+                const filteredDistricts = [...new Set(
+                    bangladeshData.features
+                        .filter(f => f.properties.division === currentDivisionFilter)
+                        .map(f => f.properties.district)
+                )].sort();
+                
+                filteredDistricts.forEach(district => {
+                    const option = document.createElement('option');
+                    option.value = district;
+                    option.textContent = district;
+                    districtSelect.appendChild(option);
+                });
+            }
+            
+            currentDistrictFilter = '';
+            loadAllConstituencies();
+        }
+
+        function filterByDistrict() {
+            currentDistrictFilter = document.getElementById('districtFilter').value;
+            loadAllConstituencies();
+        }
+
+        // Social media sharing functions
+        function shareOnFacebook() {
+            const completedCount = Object.values(constituencyData).filter(data => data.completed).length;
+            const message = `Hey, Look at my prediction for the next Bangladesh Election!!! I've predicted ${completedCount} out of 300 constituencies so far. Check out the interactive map!`;
+            const url = window.location.href;
+            const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(message)}`;
+            window.open(facebookUrl, '_blank', 'width=600,height=400');
+        }
+
+        function shareOnTwitter() {
+            const completedCount = Object.values(constituencyData).filter(data => data.completed).length;
+            const message = `Hey, Look at my prediction for the next Bangladesh Election!!! I've predicted ${completedCount}/300 constituencies. 🗳️ Check it out!`;
+            const url = window.location.href;
+            const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}&url=${encodeURIComponent(url)}`;
+            window.open(twitterUrl, '_blank', 'width=600,height=400');
+        }
+
+        function shareOnInstagram() {
+            // Instagram doesn't support direct URL sharing, so we'll copy text to clipboard
+            const completedCount = Object.values(constituencyData).filter(data => data.completed).length;
+            const message = `Hey, Look at my prediction for the next Bangladesh Election!!! I've predicted ${completedCount} out of 300 constituencies. 🗳️🇧🇩 Link: ${window.location.href}`;
+            
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(message).then(() => {
+                    alert('📷 Instagram message copied to clipboard! Paste it in your Instagram story or post.');
+                }).catch(() => {
+                    prompt('📷 Copy this message for Instagram:', message);
+                });
+            } else {
+                prompt('📷 Copy this message for Instagram:', message);
+            }
+        }
+
+        // Progress saving functions
+        function saveProgress() {
+            const progressData = {
+                version: '1.0',
+                timestamp: new Date().toISOString(),
+                totalConstituencies: bangladeshData.features.length,
+                completedCount: Object.values(constituencyData).filter(data => data.completed).length,
+                data: constituencyData
+            };
+            
+            const dataStr = JSON.stringify(progressData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `bangladesh_election_prediction_${new Date().getTime()}.json`;
+            link.click();
+            
+            alert(`✅ Progress saved! You've completed ${progressData.completedCount} out of ${progressData.totalConstituencies} constituencies.`);
+        }
+
+        function loadProgress() {
+            document.getElementById('progressFileInput').click();
+        }
+
+        function handleProgressFileLoad(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const progressData = JSON.parse(e.target.result);
+                    
+                    if (!progressData.version || !progressData.data) {
+                        throw new Error('Invalid progress file format');
+                    }
+                    
+                    // Load the progress data
+                    constituencyData = progressData.data;
+                    
+                    // Update the map colors
+                    Object.values(polygonLayers).forEach(info => {
+                        info.layer.setStyle(getPolygonStyle(info.feature));
+                    });
+                    
+                    // Update UI
+                    updateNationalSummary();
+                    updateProgressIndicator();
+                    
+                    // Clear current selection
+                    selectedConstituency = null;
+                    document.getElementById('constituencyInputSection').style.display = 'none';
+                    document.getElementById('noSelection').style.display = 'block';
+                    
+                    alert(`✅ Progress loaded successfully! You have ${progressData.completedCount} constituencies completed.`);
+                    
+                } catch (error) {
+                    console.error('Error loading progress:', error);
+                    alert('❌ Error loading progress file. Please make sure you selected a valid progress file.');
+                }
+            };
+            reader.readAsText(file);
+            
+            // Clear the input so the same file can be loaded again
+            event.target.value = '';
+        }
+
+        // Update national summary
+        function updateNationalSummary() {
+            let totalSeats = { 'BNP': 0, 'Jamaat': 0, 'NCP': 0, 'Islamic': 0, 'Jatio Party': 0 };
+            let totalVotes = { 'BNP': 0, 'Jamaat': 0, 'NCP': 0, 'Islamic': 0, 'Jatio Party': 0 };
+            let hasWinnerOnlyData = false;
+            
+            Object.keys(constituencyData).forEach(constituencyId => {
+                const data = constituencyData[constituencyId];
+                
+                if (data && data.completed) {
+                    // Winner takes seat
+                    const winningParty = getWinningParty(data);
+                    totalSeats[winningParty]++;
+                    
+                    // Check if any constituency uses winner-only mode
+                    if (data.winnerOnly) {
+                        hasWinnerOnlyData = true;
+                    }
+                    
+                    // Add vote totals (only meaningful for detailed predictions)
+                    if (!data.winnerOnly) {
+                        totalVotes.BNP += data.bnpVotes || 0;
+                        totalVotes.Jamaat += data.jamaatVotes || 0;
+                        totalVotes.NCP += data.ncpVotes || 0;
+                        totalVotes.Islamic += data.islamicVotes || 0;
+                        totalVotes['Jatio Party'] += data.jatioVotes || 0;
+                    }
+                }
+            });
+            
+            // Update table header based on mode
+            const tableHeader = document.getElementById('summaryTableHeader');
+            if (hasWinnerOnlyData) {
+                tableHeader.innerHTML = `
+                    <th>Party</th>
+                    <th>Seats Won</th>
+                `;
+                // Hide vote and percentage columns
+                const voteCells = ['totalVotesBNP', 'totalVotesJamaat', 'totalVotesNCP', 'totalVotesIslamic', 'totalVotesJatio', 'grandTotalVotes'];
+                const percentCells = ['totalPercentBNP', 'totalPercentJamaat', 'totalPercentNCP', 'totalPercentIslamic', 'totalPercentJatio', 'grandTotalPercent'];
+                
+                voteCells.forEach(id => {
+                    const cell = document.getElementById(id);
+                    if (cell) cell.style.display = 'none';
+                });
+                percentCells.forEach(id => {
+                    const cell = document.getElementById(id);
+                    if (cell) cell.style.display = 'none';
+                });
+            } else {
+                tableHeader.innerHTML = `
+                    <th>Party</th>
+                    <th>Seats</th>
+                    <th>Total Votes</th>
+                    <th>Vote %</th>
+                `;
+                // Show vote and percentage columns
+                const voteCells = ['totalVotesBNP', 'totalVotesJamaat', 'totalVotesNCP', 'totalVotesIslamic', 'totalVotesJatio', 'grandTotalVotes'];
+                const percentCells = ['totalPercentBNP', 'totalPercentJamaat', 'totalPercentNCP', 'totalPercentIslamic', 'totalPercentJatio', 'grandTotalPercent'];
+                
+                voteCells.forEach(id => {
+                    const cell = document.getElementById(id);
+                    if (cell) cell.style.display = '';
+                });
+                percentCells.forEach(id => {
+                    const cell = document.getElementById(id);
+                    if (cell) cell.style.display = '';
+                });
+            }
+            
+            const grandTotalSeats = Object.values(totalSeats).reduce((a, b) => a + b, 0);
+            const grandTotalVotes = Object.values(totalVotes).reduce((a, b) => a + b, 0);
+            
+            // Update seats
+            document.getElementById('totalSeatsBNP').textContent = totalSeats.BNP;
+            document.getElementById('totalSeatsJamaat').textContent = totalSeats.Jamaat;
+            document.getElementById('totalSeatsNCP').textContent = totalSeats.NCP;
+            document.getElementById('totalSeatsIslamic').textContent = totalSeats.Islamic;
+            document.getElementById('totalSeatsJatio').textContent = totalSeats['Jatio Party'];
+            document.getElementById('grandTotalSeats').innerHTML = `<strong>${grandTotalSeats}</strong>`;
+            
+            if (!hasWinnerOnlyData) {
+                // Update votes
+                document.getElementById('totalVotesBNP').textContent = totalVotes.BNP.toLocaleString();
+                document.getElementById('totalVotesJamaat').textContent = totalVotes.Jamaat.toLocaleString();
+                document.getElementById('totalVotesNCP').textContent = totalVotes.NCP.toLocaleString();
+                document.getElementById('totalVotesIslamic').textContent = totalVotes.Islamic.toLocaleString();
+                document.getElementById('totalVotesJatio').textContent = totalVotes['Jatio Party'].toLocaleString();
+                document.getElementById('grandTotalVotes').innerHTML = `<strong>${grandTotalVotes.toLocaleString()}</strong>`;
+                
+                // Update percentages
+                const bnpPercent = grandTotalVotes > 0 ? ((totalVotes.BNP / grandTotalVotes) * 100).toFixed(1) : 0;
+                const jamaatPercent = grandTotalVotes > 0 ? ((totalVotes.Jamaat / grandTotalVotes) * 100).toFixed(1) : 0;
+                const ncpPercent = grandTotalVotes > 0 ? ((totalVotes.NCP / grandTotalVotes) * 100).toFixed(1) : 0;
+                const islamicPercent = grandTotalVotes > 0 ? ((totalVotes.Islamic / grandTotalVotes) * 100).toFixed(1) : 0;
+                const jatioPercent = grandTotalVotes > 0 ? ((totalVotes['Jatio Party'] / grandTotalVotes) * 100).toFixed(1) : 0;
+                
+                document.getElementById('totalPercentBNP').textContent = `${bnpPercent}%`;
+                document.getElementById('totalPercentJamaat').textContent = `${jamaatPercent}%`;
+                document.getElementById('totalPercentNCP').textContent = `${ncpPercent}%`;
+                document.getElementById('totalPercentIslamic').textContent = `${islamicPercent}%`;
+                document.getElementById('totalPercentJatio').textContent = `${jatioPercent}%`;
+                document.getElementById('grandTotalPercent').innerHTML = `<strong>100%</strong>`;
+            }
+        }
+
+        // Update progress indicator
+        function updateProgressIndicator() {
+            if (!bangladeshData) return;
+            
+            // Get filtered constituencies based on current filters
+            let filteredFeatures = bangladeshData.features;
+            if (currentDivisionFilter) {
+                filteredFeatures = filteredFeatures.filter(f => f.properties.division === currentDivisionFilter);
+            }
+            if (currentDistrictFilter) {
+                filteredFeatures = filteredFeatures.filter(f => f.properties.district === currentDistrictFilter);
+            }
+            
+            const totalConstituencies = filteredFeatures.length;
+            const completedConstituencies = filteredFeatures.filter(f => {
+                const data = constituencyData[f.properties.id];
+                return data && data.completed;
+            }).length;
+            const remainingConstituencies = totalConstituencies - completedConstituencies;
+            const progressPercent = totalConstituencies > 0 ? ((completedConstituencies / totalConstituencies) * 100).toFixed(1) : 0;
+            
+            document.getElementById('totalConstituencies').textContent = totalConstituencies;
+            document.getElementById('completedConstituencies').textContent = completedConstituencies;
+            document.getElementById('remainingConstituencies').textContent = remainingConstituencies;
+            document.getElementById('progressPercent').textContent = progressPercent;
+            document.getElementById('completedCount').textContent = completedConstituencies;
+            document.getElementById('totalCount').textContent = totalConstituencies;
+        }
+
+        // Simplified download function - vertical layout, no basemap, centered
+        function downloadMap() {
+            if (!bangladeshData || !bangladeshData.features) {
+                alert('Map data not available. Please wait for the map to load completely.');
+                return;
+            }
+
+            // Get filter text
+            let filterText = 'Bangladesh';
+            let features = bangladeshData.features;
+            
+            if (currentDistrictFilter) {
+                features = features.filter(f => f.properties.district === currentDistrictFilter);
+                filterText = `${currentDistrictFilter} District`;
+            } else if (currentDivisionFilter) {
+                features = features.filter(f => f.properties.division === currentDivisionFilter);
+                filterText = `${currentDivisionFilter} Division`;
+            }
+
+            if (features.length === 0) {
+                alert('No constituencies found for current filter.');
+                return;
+            }
+
+            // Show loading notification
+            showBriefNotification('Preparing map for download...');
+
+            try {
+                createVerticalMapImage(features, filterText);
+            } catch (error) {
+                console.error('Download error:', error);
+                alert('Error creating map. Please try again.');
+            }
+        }
+
+        // Create vertical-oriented map image without basemap
+        function createVerticalMapImage(features, filterText) {
+            try {
+                // Create vertical canvas (taller than wide)
+                const finalCanvas = document.createElement('canvas');
+                finalCanvas.width = 600;
+                finalCanvas.height = 800;
+                const ctx = finalCanvas.getContext('2d');
+                
+                // Fill background
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, 600, 800);
+                
+                // Draw title
+                ctx.fillStyle = '#2c3e50';
+                ctx.font = 'bold 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Here is my Prediction for the Election', 300, 40);
+                
+                // Draw subtitle
+                ctx.fillStyle = '#666';
+                ctx.font = '14px Arial';
+                ctx.fillText(`Electoral Prediction for ${filterText}`, 300, 65);
+                
+                // Calculate bounds for the filtered features
+                const allCoordinates = [];
+                features.forEach(feature => {
+                    if (feature.geometry && feature.geometry.coordinates) {
+                        const coords = feature.geometry.coordinates;
+                        if (feature.geometry.type === 'Polygon') {
+                            coords[0].forEach(coord => allCoordinates.push(coord));
+                        } else if (feature.geometry.type === 'MultiPolygon') {
+                            coords.forEach(polygon => {
+                                polygon[0].forEach(coord => allCoordinates.push(coord));
+                            });
+                        }
+                    }
+                });
+
+                if (allCoordinates.length === 0) {
+                    throw new Error('No coordinates found for features');
+                }
+
+                // Calculate bounds
+                const lats = allCoordinates.map(coord => coord[1]);
+                const lngs = allCoordinates.map(coord => coord[0]);
+                const minLat = Math.min(...lats);
+                const maxLat = Math.max(...lats);
+                const minLng = Math.min(...lngs);
+                const maxLng = Math.max(...lngs);
+                
+                // Map drawing area (centered, with padding)
+                const mapWidth = 500;
+                const mapHeight = 400;
+                const mapX = (600 - mapWidth) / 2; // Center horizontally
+                const mapY = 90;
+                
+                // Draw map background
+                ctx.fillStyle = '#f8f9fa';
+                ctx.fillRect(mapX, mapY, mapWidth, mapHeight);
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(mapX, mapY, mapWidth, mapHeight);
+                
+                // Transform lat/lng to canvas coordinates
+                function latLngToPixel(lat, lng) {
+                    const x = mapX + ((lng - minLng) / (maxLng - minLng)) * mapWidth;
+                    const y = mapY + mapHeight - ((lat - minLat) / (maxLat - minLat)) * mapHeight;
+                    return [x, y];
+                }
+                
+                // Draw constituency polygons without basemap
+                features.forEach(feature => {
+                    const data = constituencyData[feature.properties.id];
+                    
+                    // Determine color
+                    let fillColor = '#e0e0e0'; // Default gray for no prediction
+                    if (data && data.completed) {
+                        const winningParty = getWinningParty(data);
+                        fillColor = partyColors[winningParty] || '#e0e0e0';
+                    }
+                    
+                    ctx.fillStyle = fillColor;
+                    ctx.strokeStyle = '#333';
+                    ctx.lineWidth = 1;
+                    
+                    // Draw polygon
+                    if (feature.geometry && feature.geometry.coordinates) {
+                        try {
+                            const coords = feature.geometry.coordinates;
+                            if (feature.geometry.type === 'Polygon') {
+                                drawSimplePolygon(ctx, coords[0], latLngToPixel);
+                            } else if (feature.geometry.type === 'MultiPolygon') {
+                                coords.forEach(polygon => {
+                                    drawSimplePolygon(ctx, polygon[0], latLngToPixel);
+                                });
+                            }
+                        } catch (e) {
+                            console.warn('Error drawing polygon for:', feature.properties.name);
+                        }
+                    }
+                });
+                
+                // Draw summary table below map (centered)
+                drawCenteredSummary(ctx, 300, mapY + mapHeight + 40);
+                
+                // Draw credit at bottom
+                ctx.fillStyle = '#666';
+                ctx.font = 'italic 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Bangladesh Election Analytics Group', 300, 770);
+                
+                // Download the image
+                const link = document.createElement('a');
+                link.download = `election_prediction_${filterText.replace(/\s+/g, '_')}_${Date.now()}.png`;
+                link.href = finalCanvas.toDataURL('image/png');
+                link.click();
+                
+                showBriefNotification('Map downloaded successfully!');
+                
+            } catch (error) {
+                console.error('Image creation error:', error);
+                alert('Error creating image. Please try again.');
+            }
+        }
+
+        // Draw simple polygon without complex path operations
+        function drawSimplePolygon(ctx, coordinates, transformFunc) {
+            if (coordinates.length < 3) return;
+            
+            try {
+                ctx.beginPath();
+                
+                // Start with first coordinate
+                const [startX, startY] = transformFunc(coordinates[0][1], coordinates[0][0]);
+                ctx.moveTo(startX, startY);
+                
+                // Draw lines to other coordinates (sample every few points to avoid complexity)
+                const step = Math.max(1, Math.floor(coordinates.length / 50));
+                for (let i = step; i < coordinates.length; i += step) {
+                    const [x, y] = transformFunc(coordinates[i][1], coordinates[i][0]);
+                    if (isFinite(x) && isFinite(y)) {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                
+            } catch (e) {
+                console.warn('Error in polygon drawing:', e);
+            }
+        }
+
+        // Draw centered summary table
+        function drawCenteredSummary(ctx, centerX, startY) {
+            // Calculate current totals
+            let totalSeats = { 'BNP': 0, 'Jamaat': 0, 'NCP': 0, 'Islamic Party': 0, 'Jatio Party': 0 };
+            Object.keys(constituencyData).forEach(constituencyId => {
+                const data = constituencyData[constituencyId];
+                if (data && data.completed) {
+                    const winningParty = getWinningParty(data);
+                    totalSeats[winningParty]++;
+                }
+            });
+            
+            const parties = [
+                { name: 'BNP', color: '#007bff', seats: totalSeats.BNP },
+                { name: 'Jamaat', color: '#28a745', seats: totalSeats.Jamaat },
+                { name: 'NCP', color: '#dc3545', seats: totalSeats.NCP },
+                { name: 'Islamic Party', color: '#ffc107', seats: totalSeats['Islamic Party'] },
+                { name: 'Jatio Party', color: '#6f42c1', seats: totalSeats['Jatio Party'] }
+            ];
+            
+            const grandTotal = Object.values(totalSeats).reduce((a, b) => a + b, 0);
+            
+            // Table dimensions
+            const tableWidth = 300;
+            const rowHeight = 30;
+            const headerHeight = 35;
+            
+            // Center the table
+            const tableX = centerX - tableWidth / 2;
+            
+            // Draw table header
+            ctx.fillStyle = '#343a40';
+            ctx.fillRect(tableX, startY, tableWidth, headerHeight);
+            
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Seat Predictions', centerX, startY + 22);
+            
+            // Draw party rows
+            parties.forEach((party, index) => {
+                const y = startY + headerHeight + (index * rowHeight);
+                
+                // Row background
+                ctx.fillStyle = index % 2 === 0 ? '#f8f9fa' : 'white';
+                ctx.fillRect(tableX, y, tableWidth, rowHeight);
+                
+                // Party color indicator
+                ctx.fillStyle = party.color;
+                ctx.fillRect(tableX + 10, y + 8, 14, 14);
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(tableX + 10, y + 8, 14, 14);
+                
+                // Party name and seats
+                ctx.fillStyle = '#333';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText(party.name, tableX + 35, y + 18);
+                
+                ctx.textAlign = 'right';
+                ctx.font = 'bold 12px Arial';
+                ctx.fillText(`${party.seats} seats`, tableX + tableWidth - 10, y + 18);
+            });
+            
+            // Draw total row
+            const totalY = startY + headerHeight + (parties.length * rowHeight);
+            ctx.fillStyle = '#e9ecef';
+            ctx.fillRect(tableX, totalY, tableWidth, rowHeight);
+            
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('Total Predicted:', tableX + 10, totalY + 18);
+            
+            ctx.textAlign = 'right';
+            ctx.fillText(`${grandTotal} seats`, tableX + tableWidth - 10, totalY + 18);
+            
+            // Border around entire table
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(tableX, startY, tableWidth, headerHeight + (parties.length + 1) * rowHeight);
+        }
+
+        function drawSummaryOnCanvas(ctx, centerX, startY) {
+            // Calculate current totals
+            let totalSeats = { 'BNP': 0, 'Jamaat': 0, 'NCP': 0, 'Islamic': 0, 'Jatio Party': 0 };
+            Object.keys(constituencyData).forEach(constituencyId => {
+                const data = constituencyData[constituencyId];
+                if (data && data.completed) {
+                    const winningParty = getWinningParty(data);
+                    totalSeats[winningParty]++;
+                }
+            });
+            
+            const parties = [
+                { name: 'BNP', color: '#007bff', seats: totalSeats.BNP },
+                { name: 'Jamaat', color: '#28a745', seats: totalSeats.Jamaat },
+                { name: 'NCP', color: '#dc3545', seats: totalSeats.NCP },
+                { name: 'Islamic', color: '#ffc107', seats: totalSeats.Islamic },
+                { name: 'Jatio Party', color: '#6f42c1', seats: totalSeats['Jatio Party'] }
+            ];
+            
+            const grandTotal = Object.values(totalSeats).reduce((a, b) => a + b, 0);
+            
+            // Table dimensions
+            const tableWidth = 400;
+            const rowHeight = 40;
+            const headerHeight = 45;
+            
+            // Draw table header
+            ctx.fillStyle = '#343a40';
+            ctx.fillRect(centerX - tableWidth/2, startY, tableWidth, headerHeight);
+            
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('Party', centerX - tableWidth/2 + 15, startY + 28);
+            ctx.textAlign = 'center';
+            ctx.fillText('Seats Won', centerX + tableWidth/4, startY + 28);
+            
+            // Draw party rows
+            parties.forEach((party, index) => {
+                const y = startY + headerHeight + (index * rowHeight);
+                
+                // Row background
+                ctx.fillStyle = index % 2 === 0 ? '#f8f9fa' : 'white';
+                ctx.fillRect(centerX - tableWidth/2, y, tableWidth, rowHeight);
+                
+                // Party color box
+                ctx.fillStyle = party.color;
+                ctx.fillRect(centerX - tableWidth/2 + 15, y + 12, 15, 15);
+                
+                // Party name
+                ctx.fillStyle = '#333';
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText(party.name, centerX - tableWidth/2 + 40, y + 25);
+                
+                // Seats count
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(party.seats.toString(), centerX + tableWidth/4, y + 25);
+            });
+            
+            // Total row
+            const totalY = startY + headerHeight + (parties.length * rowHeight);
+            ctx.fillStyle = '#e9ecef';
+            ctx.fillRect(centerX - tableWidth/2, totalY, tableWidth, rowHeight);
+            
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('Total', centerX - tableWidth/2 + 15, totalY + 25);
+            ctx.textAlign = 'center';
+            ctx.fillText(grandTotal.toString(), centerX + tableWidth/4, totalY + 25);
+            
+            // Border
+            ctx.strokeStyle = '#dee2e6';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(centerX - tableWidth/2, startY, tableWidth, headerHeight + (parties.length + 1) * rowHeight);
+        }
+
+        function downloadCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            
+            // Headers
+            csvContent += "Constituency,Division,District,Total_Voters,Input_Mode,BNP_Votes,BNP_Percent,Jamaat_Votes,Jamaat_Percent,NCP_Votes,NCP_Percent,Islamic_Votes,Islamic_Percent,Jatio_Votes,Jatio_Percent,Winner\n";
+            
+            // Data rows
+            bangladeshData.features.forEach(constituency => {
+                const data = constituencyData[constituency.properties.id];
+                
+                if (data && data.completed) {
+                    const winner = getWinningParty(data);
+                    const inputModeText = data.winnerOnly ? 'Winner Only' : 'Detailed';
+                    
+                    csvContent += `"${constituency.properties.name || constituency.properties.constituency}","${constituency.properties.division}","${constituency.properties.district}",${constituency.properties.total_voters},"${inputModeText}",${data.bnpVotes || 0},${data.bnpPercent || 0},${data.jamaatVotes || 0},${data.jamaatPercent || 0},${data.ncpVotes || 0},${data.ncpPercent || 0},${data.islamicVotes || 0},${data.islamicPercent || 0},${data.jatioVotes || 0},${data.jatioPercent || 0},"${winner}"\n`;
+                } else {
+                    // Include incomplete constituencies with zero values
+                    csvContent += `"${constituency.properties.name || constituency.properties.constituency}","${constituency.properties.division}","${constituency.properties.district}",${constituency.properties.total_voters},"Not Predicted",0,0,0,0,0,0,0,0,0,0,"Not Predicted"\n`;
+                }
+            });
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', `bangladesh_electoral_predictions_${new Date().getTime()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Reset all data
+        function resetAllData() {
+            if (confirm('Are you sure you want to reset all data? This action cannot be undone.')) {
+                constituencyData = {};
+                selectedConstituency = null;
+                document.getElementById('constituencyInputSection').style.display = 'none';
+                document.getElementById('noSelection').style.display = 'block';
+                
+                // Reset all inputs
+                ['bnpInput', 'jamaatInput', 'ncpInput', 'islamicInput', 'jatioInput'].forEach(id => {
+                    document.getElementById(id).value = '';
+                });
+                
+                // Reset radio buttons
+                const radioButtons = document.querySelectorAll('input[name="winnerParty"]');
+                radioButtons.forEach(radio => {
+                    radio.checked = false;
+                });
+                
+                updateNationalSummary();
+                updateProgressIndicator();
+                
+                // Update map colors
+                Object.values(polygonLayers).forEach(info => {
+                    info.layer.setStyle(getPolygonStyle(info.feature));
+                });
+                
+                showBriefNotification('All data reset successfully');
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            document.getElementById('loadingOverlay').style.display = 'none';
+            
+            // Still try to show the map even if data loading failed
+            if (!map) {
+                initMap();
+            }
+            
+            // Show error in the input container instead of replacing everything
+            const inputContainer = document.querySelector('.input-container');
+            inputContainer.innerHTML = `
+                <div class="error-message" style="margin: 20px 0;">
+                    <h3>❌ Error Loading Constituency Data</h3>
+                    <p><strong>Issue:</strong> ${message}</p>
+                    <h4>📋 Troubleshooting Steps:</h4>
+                    <ol style="text-align: left; margin: 15px 0;">
+                        <li>Make sure <strong>const.geojson</strong> is in the same folder as this HTML file</li>
+                        <li>Check that the file is valid GeoJSON format</li>
+                        <li>Ensure your web server can serve .geojson files</li>
+                        <li>Open browser console (F12) to see detailed error messages</li>
+                    </ol>
+                    <button onclick="location.reload()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 15px;">🔄 Retry Loading</button>
+                </div>
+                <div style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 6px; font-size: 14px;">
+                    <strong>Note:</strong> The map should still be visible on the left. If you don't see a map, there may be an additional issue with Leaflet loading.
+                </div>
+            `;
+        }
+
+        // Initialize the application
+        async function init() {
+            try {
+                console.log('Starting application initialization...');
+                
+                // Initialize map first
+                initMap();
+                
+                // Show that we're trying to load data
+                console.log('Attempting to load const.geojson...');
+                
+                // Load GeoJSON data
+                bangladeshData = await loadGeoJSONData();
+                console.log('GeoJSON loaded successfully, features:', bangladeshData.features.length);
+                
+                // Hide loading overlay
+                document.getElementById('loadingOverlay').style.display = 'none';
+                
+                // Setup filters
+                populateFilters();
+                
+                // Load all constituencies
+                loadAllConstituencies();
+                
+                // Update UI
+                updateNationalSummary();
+                updateProgressIndicator();
+                
+                console.log('Application initialized successfully');
+                
+            } catch (error) {
+                console.error('Initialization error:', error);
+                
+                // Hide loading overlay
+                document.getElementById('loadingOverlay').style.display = 'none';
+                
+                // Show a more helpful error message
+                const errorMsg = error.message.includes('404') ? 
+                    'const.geojson file not found. Please make sure the file is in the same directory as this HTML file.' :
+                    `Failed to load data: ${error.message}`;
+                    
+                showError(errorMsg);
+            }
+        }
+
+        // Start the application when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
