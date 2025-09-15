@@ -159,7 +159,8 @@
             transition: all 0.3s ease;
             color: white;
             text-decoration: none;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
         }
         
         .share-btn.facebook {
@@ -171,11 +172,11 @@
         }
         
         .share-btn.twitter {
-            background-color: #1da1f2;
+            background-color: #000000;
         }
         
         .share-btn.twitter:hover {
-            background-color: #1a91da;
+            background-color: #333333;
         }
         
         .share-btn.instagram {
@@ -480,9 +481,18 @@
             <div class="control-row">
                 <div class="share-section">
                     <span style="font-weight: bold; margin-right: 10px;">Share Your Prediction:</span>
-                    <button class="share-btn facebook" onclick="shareOnFacebook()">📘 Facebook</button>
-                    <button class="share-btn twitter" onclick="shareOnTwitter()">✗ X (Twitter)</button>
-                    <button class="share-btn instagram" onclick="shareOnInstagram()">📷 Instagram</button>
+                    <button class="share-btn facebook" onclick="shareOnFacebook()">
+                        <img src="https://cdn-icons-png.flaticon.com/128/733/733547.png" alt="Facebook" style="width: 16px; height: 16px; margin-right: 5px;">
+                        Facebook
+                    </button>
+                    <button class="share-btn twitter" onclick="shareOnTwitter()">
+                        <img src="https://cdn-icons-png.flaticon.com/128/5968/5968830.png" alt="X" style="width: 16px; height: 16px; margin-right: 5px;">
+                        X
+                    </button>
+                    <button class="share-btn instagram" onclick="shareOnInstagram()">
+                        <img src="https://cdn-icons-png.flaticon.com/128/174/174855.png" alt="Instagram" style="width: 16px; height: 16px; margin-right: 5px;">
+                        Instagram
+                    </button>
                 </div>
             </div>
             
@@ -1082,60 +1092,13 @@
             
             // Remove after 2 seconds
             setTimeout(() => {
-                document.body.removeChild(notification);
+                if (document.body.contains(notification)) {
+                    document.body.removeChild(notification);
+                }
             }, 2000);
         }
 
-        // This function is called when a party is selected in winner mode
-        function updateSelectedParty() {
-            const selectedParty = getSelectedParty();
-            if (selectedParty) {
-                showBriefNotification(`${selectedParty} selected. Now click constituencies to assign this party.`);
-            }
-        }
-
-        // New function specifically for winner mode party selection - MORE RELIABLE
-        function selectPartyWinner(partyValue) {
-            console.log('🎯 Selecting party:', partyValue);
-            
-            // First, remove selected styling from all party boxes
-            const allPartyBoxes = document.querySelectorAll('#partySelectionGroup .winner-radio-label');
-            allPartyBoxes.forEach(box => {
-                box.style.border = '2px solid #ddd';
-                box.style.background = 'white';
-            });
-            
-            // Clear all radio buttons
-            const radioButtons = document.querySelectorAll('input[name="winnerParty"]');
-            radioButtons.forEach(radio => {
-                radio.checked = false;
-            });
-            
-            // Set the selected party radio button
-            const selectedRadio = document.querySelector(`input[name="winnerParty"][value="${partyValue}"]`);
-            if (selectedRadio) {
-                selectedRadio.checked = true;
-                
-                // Highlight the selected party box
-                const selectedBox = selectedRadio.closest('.winner-radio-label');
-                if (selectedBox) {
-                    selectedBox.style.border = '2px solid #007bff';
-                    selectedBox.style.background = '#e3f2fd';
-                }
-                
-                console.log('✅ Party selected successfully:', partyValue);
-                showBriefNotification(`🎯 ${partyValue} selected! Now click constituencies on the map to assign this party as winner.`);
-            } else {
-                console.error('❌ Could not find radio button for party:', partyValue);
-                alert('Error selecting party. Please try again.');
-            }
-        }
-
-        // Keep the old function for backward compatibility
-        function selectParty(partyValue) {
-            selectPartyWinner(partyValue);
-        }
-
+        // Clear winner selection
         function clearWinnerSelection() {
             const radioButtons = document.querySelectorAll('input[name="winnerParty"]');
             radioButtons.forEach(radio => {
@@ -1408,37 +1371,70 @@
             loadAllConstituencies();
         }
 
-        // Social media sharing functions
+        // Fixed Social media sharing functions
         function shareOnFacebook() {
             const completedCount = Object.values(constituencyData).filter(data => data.completed).length;
-            const message = `Hey, Look at my prediction for the next Bangladesh Election!!! I've predicted ${completedCount} out of 300 constituencies so far. Check out the interactive map!`;
             const url = window.location.href;
-            const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(message)}`;
-            window.open(facebookUrl, '_blank', 'width=600,height=400');
+            const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+            
+            // Open in new window with proper parameters
+            const popup = window.open(facebookUrl, 'facebook-share', 'width=626,height=436,resizable=yes,scrollbars=yes');
+            
+            if (!popup) {
+                // Fallback if popup blocked
+                showBriefNotification('Please allow popups for sharing. Alternatively, copy this link: ' + url);
+            } else {
+                showBriefNotification('Facebook sharing opened!');
+            }
         }
 
         function shareOnTwitter() {
             const completedCount = Object.values(constituencyData).filter(data => data.completed).length;
-            const message = `Hey, Look at my prediction for the next Bangladesh Election!!! I've predicted ${completedCount}/300 constituencies. 🗳️ Check it out!`;
+            const message = `Hey, Look at my prediction for the next Bangladesh Election!!! I've predicted ${completedCount}/300 constituencies. Check it out!`;
             const url = window.location.href;
             const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}&url=${encodeURIComponent(url)}`;
-            window.open(twitterUrl, '_blank', 'width=600,height=400');
+            
+            const popup = window.open(twitterUrl, 'twitter-share', 'width=550,height=420,resizable=yes,scrollbars=yes');
+            
+            if (!popup) {
+                showBriefNotification('Please allow popups for sharing. Alternatively, copy this link: ' + url);
+            } else {
+                showBriefNotification('X (Twitter) sharing opened!');
+            }
         }
 
         function shareOnInstagram() {
             // Instagram doesn't support direct URL sharing, so we'll copy text to clipboard
             const completedCount = Object.values(constituencyData).filter(data => data.completed).length;
-            const message = `Hey, Look at my prediction for the next Bangladesh Election!!! I've predicted ${completedCount} out of 300 constituencies. 🗳️🇧🇩 Link: ${window.location.href}`;
+            const message = `Hey, Look at my prediction for the next Bangladesh Election!!! I've predicted ${completedCount} out of 300 constituencies.\n\nLink: ${window.location.href}\n\n#BangladeshElection #ElectionPrediction #Politics #Bangladesh`;
             
-            if (navigator.clipboard) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(message).then(() => {
-                    alert('📷 Instagram message copied to clipboard! Paste it in your Instagram story or post.');
+                    showBriefNotification('Instagram message copied to clipboard! Paste it in your Instagram story or post.');
                 }).catch(() => {
-                    prompt('📷 Copy this message for Instagram:', message);
+                    promptForCopy(message);
                 });
             } else {
-                prompt('📷 Copy this message for Instagram:', message);
+                promptForCopy(message);
             }
+        }
+
+        function promptForCopy(message) {
+            const textArea = document.createElement('textarea');
+            textArea.value = message;
+            textArea.style.position = 'fixed';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showBriefNotification('Message copied to clipboard for Instagram!');
+            } catch (err) {
+                prompt('Copy this message for Instagram:', message);
+            }
+            
+            document.body.removeChild(textArea);
         }
 
         // Progress saving functions
@@ -1459,7 +1455,7 @@
             link.download = `bangladesh_election_prediction_${new Date().getTime()}.json`;
             link.click();
             
-            alert(`✅ Progress saved! You've completed ${progressData.completedCount} out of ${progressData.totalConstituencies} constituencies.`);
+            showBriefNotification(`Progress saved! You've completed ${progressData.completedCount} out of ${progressData.totalConstituencies} constituencies.`);
         }
 
         function loadProgress() {
@@ -1496,17 +1492,152 @@
                     document.getElementById('constituencyInputSection').style.display = 'none';
                     document.getElementById('noSelection').style.display = 'block';
                     
-                    alert(`✅ Progress loaded successfully! You have ${progressData.completedCount} constituencies completed.`);
+                    showBriefNotification(`Progress loaded successfully! You have ${progressData.completedCount} constituencies completed.`);
                     
                 } catch (error) {
                     console.error('Error loading progress:', error);
-                    alert('❌ Error loading progress file. Please make sure you selected a valid progress file.');
+                    showBriefNotification('Error loading progress file. Please make sure you selected a valid progress file.');
                 }
             };
             reader.readAsText(file);
             
             // Clear the input so the same file can be loaded again
             event.target.value = '';
+        }
+
+        // Fixed download function using html2canvas
+        function downloadMap() {
+            if (!bangladeshData || !bangladeshData.features) {
+                showBriefNotification('Map data not available. Please wait for the map to load completely.');
+                return;
+            }
+
+            // Show loading notification
+            showBriefNotification('Creating map image... Please wait (this may take a few seconds)...');
+
+            // Use html2canvas to capture the map
+            const mapElement = document.getElementById('map');
+            
+            html2canvas(mapElement, {
+                useCORS: true,
+                allowTaint: true,
+                scale: 1,
+                width: mapElement.offsetWidth,
+                height: mapElement.offsetHeight,
+                backgroundColor: '#ffffff'
+            }).then(canvas => {
+                // Create download link
+                const link = document.createElement('a');
+                link.download = `bangladesh_election_prediction_${new Date().getTime()}.png`;
+                link.href = canvas.toDataURL('image/png');
+                
+                // Trigger download
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showBriefNotification('Map downloaded successfully!');
+                
+            }).catch(error => {
+                console.error('Download error:', error);
+                
+                // Fallback: Simple summary image
+                try {
+                    createSummaryImage();
+                } catch (fallbackError) {
+                    console.error('Fallback download error:', fallbackError);
+                    showBriefNotification('Download failed. Please try a different browser or check console for details.');
+                }
+            });
+        }
+
+        // Fallback summary image creation
+        function createSummaryImage() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 800;
+            canvas.height = 600;
+            const ctx = canvas.getContext('2d');
+            
+            // Fill background
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, 800, 600);
+            
+            // Draw title
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Bangladesh Election Prediction Summary', 400, 40);
+            
+            // Draw timestamp
+            ctx.fillStyle = '#666';
+            ctx.font = '14px Arial';
+            ctx.fillText(new Date().toLocaleDateString(), 400, 65);
+            
+            // Calculate summary
+            let totalSeats = { 'BNP': 0, 'Jamaat': 0, 'NCP': 0, 'Islamic Party': 0, 'Jatio Party': 0 };
+            Object.keys(constituencyData).forEach(constituencyId => {
+                const data = constituencyData[constituencyId];
+                if (data && data.completed) {
+                    const winningParty = getWinningParty(data);
+                    totalSeats[winningParty]++;
+                }
+            });
+            
+            const grandTotal = Object.values(totalSeats).reduce((a, b) => a + b, 0);
+            
+            // Draw summary table
+            ctx.fillStyle = '#f8f9fa';
+            ctx.fillRect(200, 120, 400, 300);
+            ctx.strokeStyle = '#333';
+            ctx.strokeRect(200, 120, 400, 300);
+            
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 18px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Seat Predictions Summary', 400, 150);
+            
+            const parties = [
+                { name: 'BNP', color: '#007bff', seats: totalSeats.BNP },
+                { name: 'Jamaat-e-Islami', color: '#28a745', seats: totalSeats.Jamaat },
+                { name: 'NCP', color: '#dc3545', seats: totalSeats.NCP },
+                { name: 'Islamic Party', color: '#ffc107', seats: totalSeats['Islamic Party'] },
+                { name: 'Jatio Party', color: '#6f42c1', seats: totalSeats['Jatio Party'] }
+            ];
+            
+            parties.forEach((party, index) => {
+                const y = 180 + (index * 40);
+                
+                // Color box
+                ctx.fillStyle = party.color;
+                ctx.fillRect(220, y, 20, 20);
+                
+                // Party name and seats
+                ctx.fillStyle = '#333';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText(party.name, 250, y + 15);
+                
+                ctx.textAlign = 'right';
+                ctx.fillText(`${party.seats} seats`, 580, y + 15);
+            });
+            
+            // Total
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('Total Predicted:', 250, 400);
+            ctx.textAlign = 'right';
+            ctx.fillText(`${grandTotal} seats`, 580, 400);
+            
+            // Download
+            const link = document.createElement('a');
+            link.download = `bangladesh_election_summary_${new Date().getTime()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showBriefNotification('Summary image downloaded!');
         }
 
         // Update national summary
@@ -1644,359 +1775,6 @@
             document.getElementById('totalCount').textContent = totalConstituencies;
         }
 
-        // Simplified download function - vertical layout, no basemap, centered
-        function downloadMap() {
-            if (!bangladeshData || !bangladeshData.features) {
-                alert('Map data not available. Please wait for the map to load completely.');
-                return;
-            }
-
-            // Get filter text
-            let filterText = 'Bangladesh';
-            let features = bangladeshData.features;
-            
-            if (currentDistrictFilter) {
-                features = features.filter(f => f.properties.district === currentDistrictFilter);
-                filterText = `${currentDistrictFilter} District`;
-            } else if (currentDivisionFilter) {
-                features = features.filter(f => f.properties.division === currentDivisionFilter);
-                filterText = `${currentDivisionFilter} Division`;
-            }
-
-            if (features.length === 0) {
-                alert('No constituencies found for current filter.');
-                return;
-            }
-
-            // Show loading notification
-            showBriefNotification('Preparing map for download...');
-
-            try {
-                createVerticalMapImage(features, filterText);
-            } catch (error) {
-                console.error('Download error:', error);
-                alert('Error creating map. Please try again.');
-            }
-        }
-
-        // Create vertical-oriented map image without basemap
-        function createVerticalMapImage(features, filterText) {
-            try {
-                // Create vertical canvas (taller than wide)
-                const finalCanvas = document.createElement('canvas');
-                finalCanvas.width = 600;
-                finalCanvas.height = 800;
-                const ctx = finalCanvas.getContext('2d');
-                
-                // Fill background
-                ctx.fillStyle = 'white';
-                ctx.fillRect(0, 0, 600, 800);
-                
-                // Draw title
-                ctx.fillStyle = '#2c3e50';
-                ctx.font = 'bold 20px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('Here is my Prediction for the Election', 300, 40);
-                
-                // Draw subtitle
-                ctx.fillStyle = '#666';
-                ctx.font = '14px Arial';
-                ctx.fillText(`Electoral Prediction for ${filterText}`, 300, 65);
-                
-                // Calculate bounds for the filtered features
-                const allCoordinates = [];
-                features.forEach(feature => {
-                    if (feature.geometry && feature.geometry.coordinates) {
-                        const coords = feature.geometry.coordinates;
-                        if (feature.geometry.type === 'Polygon') {
-                            coords[0].forEach(coord => allCoordinates.push(coord));
-                        } else if (feature.geometry.type === 'MultiPolygon') {
-                            coords.forEach(polygon => {
-                                polygon[0].forEach(coord => allCoordinates.push(coord));
-                            });
-                        }
-                    }
-                });
-
-                if (allCoordinates.length === 0) {
-                    throw new Error('No coordinates found for features');
-                }
-
-                // Calculate bounds
-                const lats = allCoordinates.map(coord => coord[1]);
-                const lngs = allCoordinates.map(coord => coord[0]);
-                const minLat = Math.min(...lats);
-                const maxLat = Math.max(...lats);
-                const minLng = Math.min(...lngs);
-                const maxLng = Math.max(...lngs);
-                
-                // Map drawing area (centered, with padding)
-                const mapWidth = 500;
-                const mapHeight = 400;
-                const mapX = (600 - mapWidth) / 2; // Center horizontally
-                const mapY = 90;
-                
-                // Draw map background
-                ctx.fillStyle = '#f8f9fa';
-                ctx.fillRect(mapX, mapY, mapWidth, mapHeight);
-                ctx.strokeStyle = '#333';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(mapX, mapY, mapWidth, mapHeight);
-                
-                // Transform lat/lng to canvas coordinates
-                function latLngToPixel(lat, lng) {
-                    const x = mapX + ((lng - minLng) / (maxLng - minLng)) * mapWidth;
-                    const y = mapY + mapHeight - ((lat - minLat) / (maxLat - minLat)) * mapHeight;
-                    return [x, y];
-                }
-                
-                // Draw constituency polygons without basemap
-                features.forEach(feature => {
-                    const data = constituencyData[feature.properties.id];
-                    
-                    // Determine color
-                    let fillColor = '#e0e0e0'; // Default gray for no prediction
-                    if (data && data.completed) {
-                        const winningParty = getWinningParty(data);
-                        fillColor = partyColors[winningParty] || '#e0e0e0';
-                    }
-                    
-                    ctx.fillStyle = fillColor;
-                    ctx.strokeStyle = '#333';
-                    ctx.lineWidth = 1;
-                    
-                    // Draw polygon
-                    if (feature.geometry && feature.geometry.coordinates) {
-                        try {
-                            const coords = feature.geometry.coordinates;
-                            if (feature.geometry.type === 'Polygon') {
-                                drawSimplePolygon(ctx, coords[0], latLngToPixel);
-                            } else if (feature.geometry.type === 'MultiPolygon') {
-                                coords.forEach(polygon => {
-                                    drawSimplePolygon(ctx, polygon[0], latLngToPixel);
-                                });
-                            }
-                        } catch (e) {
-                            console.warn('Error drawing polygon for:', feature.properties.name);
-                        }
-                    }
-                });
-                
-                // Draw summary table below map (centered)
-                drawCenteredSummary(ctx, 300, mapY + mapHeight + 40);
-                
-                // Draw credit at bottom
-                ctx.fillStyle = '#666';
-                ctx.font = 'italic 12px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('Bangladesh Election Analytics Group', 300, 770);
-                
-                // Download the image
-                const link = document.createElement('a');
-                link.download = `election_prediction_${filterText.replace(/\s+/g, '_')}_${Date.now()}.png`;
-                link.href = finalCanvas.toDataURL('image/png');
-                link.click();
-                
-                showBriefNotification('Map downloaded successfully!');
-                
-            } catch (error) {
-                console.error('Image creation error:', error);
-                alert('Error creating image. Please try again.');
-            }
-        }
-
-        // Draw simple polygon without complex path operations
-        function drawSimplePolygon(ctx, coordinates, transformFunc) {
-            if (coordinates.length < 3) return;
-            
-            try {
-                ctx.beginPath();
-                
-                // Start with first coordinate
-                const [startX, startY] = transformFunc(coordinates[0][1], coordinates[0][0]);
-                ctx.moveTo(startX, startY);
-                
-                // Draw lines to other coordinates (sample every few points to avoid complexity)
-                const step = Math.max(1, Math.floor(coordinates.length / 50));
-                for (let i = step; i < coordinates.length; i += step) {
-                    const [x, y] = transformFunc(coordinates[i][1], coordinates[i][0]);
-                    if (isFinite(x) && isFinite(y)) {
-                        ctx.lineTo(x, y);
-                    }
-                }
-                
-                ctx.closePath();
-                ctx.fill();
-                ctx.stroke();
-                
-            } catch (e) {
-                console.warn('Error in polygon drawing:', e);
-            }
-        }
-
-        // Draw centered summary table
-        function drawCenteredSummary(ctx, centerX, startY) {
-            // Calculate current totals
-            let totalSeats = { 'BNP': 0, 'Jamaat': 0, 'NCP': 0, 'Islamic Party': 0, 'Jatio Party': 0 };
-            Object.keys(constituencyData).forEach(constituencyId => {
-                const data = constituencyData[constituencyId];
-                if (data && data.completed) {
-                    const winningParty = getWinningParty(data);
-                    totalSeats[winningParty]++;
-                }
-            });
-            
-            const parties = [
-                { name: 'BNP', color: '#007bff', seats: totalSeats.BNP },
-                { name: 'Jamaat', color: '#28a745', seats: totalSeats.Jamaat },
-                { name: 'NCP', color: '#dc3545', seats: totalSeats.NCP },
-                { name: 'Islamic Party', color: '#ffc107', seats: totalSeats['Islamic Party'] },
-                { name: 'Jatio Party', color: '#6f42c1', seats: totalSeats['Jatio Party'] }
-            ];
-            
-            const grandTotal = Object.values(totalSeats).reduce((a, b) => a + b, 0);
-            
-            // Table dimensions
-            const tableWidth = 300;
-            const rowHeight = 30;
-            const headerHeight = 35;
-            
-            // Center the table
-            const tableX = centerX - tableWidth / 2;
-            
-            // Draw table header
-            ctx.fillStyle = '#343a40';
-            ctx.fillRect(tableX, startY, tableWidth, headerHeight);
-            
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold 14px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('Seat Predictions', centerX, startY + 22);
-            
-            // Draw party rows
-            parties.forEach((party, index) => {
-                const y = startY + headerHeight + (index * rowHeight);
-                
-                // Row background
-                ctx.fillStyle = index % 2 === 0 ? '#f8f9fa' : 'white';
-                ctx.fillRect(tableX, y, tableWidth, rowHeight);
-                
-                // Party color indicator
-                ctx.fillStyle = party.color;
-                ctx.fillRect(tableX + 10, y + 8, 14, 14);
-                ctx.strokeStyle = '#333';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(tableX + 10, y + 8, 14, 14);
-                
-                // Party name and seats
-                ctx.fillStyle = '#333';
-                ctx.font = '12px Arial';
-                ctx.textAlign = 'left';
-                ctx.fillText(party.name, tableX + 35, y + 18);
-                
-                ctx.textAlign = 'right';
-                ctx.font = 'bold 12px Arial';
-                ctx.fillText(`${party.seats} seats`, tableX + tableWidth - 10, y + 18);
-            });
-            
-            // Draw total row
-            const totalY = startY + headerHeight + (parties.length * rowHeight);
-            ctx.fillStyle = '#e9ecef';
-            ctx.fillRect(tableX, totalY, tableWidth, rowHeight);
-            
-            ctx.fillStyle = '#333';
-            ctx.font = 'bold 14px Arial';
-            ctx.textAlign = 'left';
-            ctx.fillText('Total Predicted:', tableX + 10, totalY + 18);
-            
-            ctx.textAlign = 'right';
-            ctx.fillText(`${grandTotal} seats`, tableX + tableWidth - 10, totalY + 18);
-            
-            // Border around entire table
-            ctx.strokeStyle = '#333';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(tableX, startY, tableWidth, headerHeight + (parties.length + 1) * rowHeight);
-        }
-
-        function drawSummaryOnCanvas(ctx, centerX, startY) {
-            // Calculate current totals
-            let totalSeats = { 'BNP': 0, 'Jamaat': 0, 'NCP': 0, 'Islamic': 0, 'Jatio Party': 0 };
-            Object.keys(constituencyData).forEach(constituencyId => {
-                const data = constituencyData[constituencyId];
-                if (data && data.completed) {
-                    const winningParty = getWinningParty(data);
-                    totalSeats[winningParty]++;
-                }
-            });
-            
-            const parties = [
-                { name: 'BNP', color: '#007bff', seats: totalSeats.BNP },
-                { name: 'Jamaat', color: '#28a745', seats: totalSeats.Jamaat },
-                { name: 'NCP', color: '#dc3545', seats: totalSeats.NCP },
-                { name: 'Islamic', color: '#ffc107', seats: totalSeats.Islamic },
-                { name: 'Jatio Party', color: '#6f42c1', seats: totalSeats['Jatio Party'] }
-            ];
-            
-            const grandTotal = Object.values(totalSeats).reduce((a, b) => a + b, 0);
-            
-            // Table dimensions
-            const tableWidth = 400;
-            const rowHeight = 40;
-            const headerHeight = 45;
-            
-            // Draw table header
-            ctx.fillStyle = '#343a40';
-            ctx.fillRect(centerX - tableWidth/2, startY, tableWidth, headerHeight);
-            
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold 16px Arial';
-            ctx.textAlign = 'left';
-            ctx.fillText('Party', centerX - tableWidth/2 + 15, startY + 28);
-            ctx.textAlign = 'center';
-            ctx.fillText('Seats Won', centerX + tableWidth/4, startY + 28);
-            
-            // Draw party rows
-            parties.forEach((party, index) => {
-                const y = startY + headerHeight + (index * rowHeight);
-                
-                // Row background
-                ctx.fillStyle = index % 2 === 0 ? '#f8f9fa' : 'white';
-                ctx.fillRect(centerX - tableWidth/2, y, tableWidth, rowHeight);
-                
-                // Party color box
-                ctx.fillStyle = party.color;
-                ctx.fillRect(centerX - tableWidth/2 + 15, y + 12, 15, 15);
-                
-                // Party name
-                ctx.fillStyle = '#333';
-                ctx.font = '14px Arial';
-                ctx.textAlign = 'left';
-                ctx.fillText(party.name, centerX - tableWidth/2 + 40, y + 25);
-                
-                // Seats count
-                ctx.font = 'bold 14px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText(party.seats.toString(), centerX + tableWidth/4, y + 25);
-            });
-            
-            // Total row
-            const totalY = startY + headerHeight + (parties.length * rowHeight);
-            ctx.fillStyle = '#e9ecef';
-            ctx.fillRect(centerX - tableWidth/2, totalY, tableWidth, rowHeight);
-            
-            ctx.fillStyle = '#333';
-            ctx.font = 'bold 16px Arial';
-            ctx.textAlign = 'left';
-            ctx.fillText('Total', centerX - tableWidth/2 + 15, totalY + 25);
-            ctx.textAlign = 'center';
-            ctx.fillText(grandTotal.toString(), centerX + tableWidth/4, totalY + 25);
-            
-            // Border
-            ctx.strokeStyle = '#dee2e6';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(centerX - tableWidth/2, startY, tableWidth, headerHeight + (parties.length + 1) * rowHeight);
-        }
-
         function downloadCSV() {
             let csvContent = "data:text/csv;charset=utf-8,";
             
@@ -2025,6 +1803,8 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            
+            showBriefNotification('CSV downloaded successfully!');
         }
 
         // Reset all data
